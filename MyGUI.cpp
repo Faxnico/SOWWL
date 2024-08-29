@@ -218,7 +218,7 @@ static CMGObj* CMGObj::CreateNewObj(MyGUI::Widget* widget, SLayout* layout) {
     if (s.str_00.length_14 != 0) {
         return new CMGCheckList(widget, new MyGUI::CheckListWindow(s.str_00.c_str(), widget), layout);
     }  
-    
+
     return nullptr;
 }
 
@@ -231,9 +231,36 @@ void __thiscall CNSDMyGUI::Init(void)
     mBaseMrg_124->Direct3DDevice_50 = thePR.Direct3DDevice_026DA;
     mBaseMrg_124->hInstance_54 = theApp.hInstance_1a8;
     mBaseMrg_124->hWnd_48 = theApp.mainWnd_0f0->hWnd_30;    
-    createGui(CUtil::m_homedir + "Base/Layout", CUtil::m_tmpdir + "MyGUI.log");
+    this->createGui(CUtil::m_homedir + "Base/Layout", CUtil::m_tmpdir + "MyGUI.log");
     MyGUI::Singleton<MyGUI::ResourceManager>::getInstance().load("SOWWLResources.xml");
     CWarApp::SetLanguage();
+}
+
+virtual void __thiscall CNSDBaseMgr::createGui(const char *layoutDir, const char *logFile)
+{
+    base::BaseManager::createGui(layoutDir, logFile);
+    this->mPlatform->mDataManager->shutdown();
+    if (this->mPlatform_44->mDataManager != nullptr) {
+        delete this->mPlatform_44->mDataManager;
+        this->mPlatform_44->mDataManager = nullptr;
+    }
+    this->mPlatform_44->mDataManager = new CNSDDataManager();
+    this->mPlatform_44->mDataManager->initialise();
+    MyGUI::LogManager::getInstance().setLoggingLevel(MyGUI::LogLevel::Info);
+
+    base::BaseManager::addResourceLocation(this->rootPath_5c, true); // <Paths> <Path root="true"
+    this->mGui_40 = new MyGUI::Gui();
+    this->mGui_40->initialise(this->coreXMLFile_78);
+
+    this->mInfo_c4 = new diagnostic::StatisticInfo();
+    this->mFocusInfo_c8 = new diagnostic::InputFocusInfo();
+
+    MyGUI::Singleton<MyGUI::Gui>::getInstance().eventFrameStart += MyGUI::newDelegate(this, &CNSDBaseMgr::notifyFrameStartUpdateStatistic);
+
+    input::InputManager::createInput(this->hWnd_48);
+    input::PointerManager::createPointerManager(this->hWnd_48);
+    base::BaseManager::_windowResized(false);
+    this->createScene_v2c();
 }
 
 void __thiscall CNSDMyGUI::Free(void)
